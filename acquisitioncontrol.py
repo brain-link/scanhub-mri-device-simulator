@@ -24,13 +24,15 @@ class RequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         """Handle the POST requests."""
         if self.path == "/api/start-scan":
+            print("Received request to /api/start-scan")
             content_length = int(self.headers["Content-Length"])
             post_data = self.rfile.read(content_length)
             payload = json.loads(post_data)
 
             # Access the payload data
+            print("Received payload:", payload)
             record_id = payload["record_id"]
-            sequence = payload["sequence"]
+            sequence = str(payload["parametrized_sequence"])
 
             acquisition_event = AcquisitionEvent(
                 device_id="Simulator",
@@ -100,7 +102,7 @@ class AcquisitionControl(QObject):
         super(self.__class__, self).__init__(parent)
 
         # Create the threaded http server
-        self._threaded_http_server = ThreadedHttpServer("localhost", 5000, self)
+        self._threaded_http_server = ThreadedHttpServer("0.0.0.0", 5000, self)
 
         # Set the ScanHub ID
         self._scanhub_id = scanhub_id
@@ -174,12 +176,14 @@ class AcquisitionControl(QObject):
             print(f"finished acquisition_event : {acquisition_event}")
 
             file = {"file": open(tmp_file_path, "rb")}
-            url = f"http://localhost:8080/api/v1/workflow/upload/{acquisition_event.record_id}"
+            url = f"http://localhost:8080/api/v1/workflowmanager/upload/{acquisition_event.record_id}"
 
-            print(f"uploading to {url}")
+            print(f"Uploading to {url}")
 
             r = requests.post(url, files=file)
-            print(r.json())
+
+            print("Sent upload post request.")
+            print("Upload POST Response:", r.json())
             return True
 
         except Exception as e:
